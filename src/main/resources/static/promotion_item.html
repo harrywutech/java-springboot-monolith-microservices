@@ -70,13 +70,13 @@ window.onload = function() {
 
 				},
 				error: function (data) {
-					alert("error: " + data);
+					alert("Could not load promotion details. Please refresh.");
 				}
 			});
 
 		},
 		error: function (data) {
-			alert("error: " + data);
+			alert("Could not load promotion details. Please refresh.");
 		}
 	});
 };
@@ -306,7 +306,7 @@ window.onload = function() {
 													},
 													error: function (data) {
 														console.log(data);
-														alert("error: " + data);
+														alert(data.responseJSON && data.responseJSON.orderStatus === -1 ? "Sold Out" : "Order could not be accepted. Please try again.");
 													}
 												});
 											}

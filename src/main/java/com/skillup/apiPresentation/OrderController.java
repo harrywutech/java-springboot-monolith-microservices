@@ -5,7 +5,7 @@ import com.skillup.apiPresentation.dto.in.OrderStatusInDto;
 import com.skillup.apiPresentation.dto.out.OrderOutDto;
 import com.skillup.apiPresentation.util.SkillUpCommon;
 import com.skillup.apiPresentation.util.SnowFlake;
-import com.skillup.application.order.OrderApplication;
+import com.skillup.application.order.OrderWorkflow;
 import com.skillup.domain.order.OrderDomain;
 import com.skillup.domain.order.OrderService;
 import com.skillup.domain.order.util.OrderStatus;
@@ -24,7 +24,7 @@ public class OrderController {
     SnowFlake snowFlake;
 
     @Autowired
-    OrderApplication orderApplication;
+    OrderWorkflow orderApplication;
 
     @Autowired
     OrderService orderService;
@@ -35,7 +35,7 @@ public class OrderController {
         if (OrderStatus.OUT_OF_STOCK.equals(domain.getOrderStatus()) || OrderStatus.ITEM_ERROR.equals(domain.getOrderStatus())) {
             return ResponseEntity.status(SkillUpCommon.BAD_REQUEST).body(toOutDto(domain));
         }
-        return ResponseEntity.status(SkillUpCommon.SUCCESS).body(toOutDto(domain));
+        return ResponseEntity.status(domain.getOrderStatus() == OrderStatus.READY ? 202 : 200).body(toOutDto(domain));
     }
 
     @GetMapping("/id/{id}")
@@ -44,7 +44,7 @@ public class OrderController {
         if (Objects.isNull(domain)) {
             return ResponseEntity.status(SkillUpCommon.BAD_REQUEST).body(null);
         }
-        return ResponseEntity.status(SkillUpCommon.SUCCESS).body(toOutDto(domain));
+        return ResponseEntity.status(domain.getOrderStatus() == OrderStatus.READY ? 202 : 200).body(toOutDto(domain));
     }
 
     @PatchMapping("/pay/id/{id}")

@@ -1,0 +1,69 @@
+name: ecomm-step2
+services:
+  mysql:
+    image: mysql:8.0
+    ports: ["127.0.0.1:13307:3306"]
+    environment:
+      MYSQL_DATABASE: skillup
+      MYSQL_USER: skillup
+      MYSQL_PASSWORD: skillup_local
+      MYSQL_ROOT_PASSWORD: step2_root_local
+      TZ: UTC
+    volumes: ["mysql-data:/var/lib/mysql"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+  redis:
+    image: redis:7.2-alpine
+    command: redis-server --appendonly yes --appendfsync always
+    ports: ["127.0.0.1:16379:6379"]
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  namesrv:
+    image: apache/rocketmq:4.9.6
+    platform: linux/amd64
+    command: sh mqnamesrv
+    environment:
+      JAVA_OPT_EXT: "-Xms128m -Xmx128m -Xmn64m"
+    ports: ["127.0.0.1:19876:9876"]
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/9876'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+  broker-init:
+    image: apache/rocketmq:4.9.6
+    platform: linux/amd64
+    user: "0:0"
+    command: sh -c 'chown -R rocketmq:rocketmq /home/rocketmq/store /home/rocketmq/logs'
+    volumes: ["broker-store:/home/rocketmq/store", "broker-logs:/home/rocketmq/logs"]
+  broker:
+    image: apache/rocketmq:4.9.6
+    platform: linux/amd64
+    command: sh mqbroker -n namesrv:9876 -c /home/rocketmq/broker.conf
+    depends_on:
+      namesrv: {condition: service_healthy}
+      broker-init: {condition: service_completed_successfully}
+    environment:
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m -Xmn128m"
+    ports: ["127.0.0.1:10911:10911", "127.0.0.1:10909:10909"]
+    volumes:
+      - ./config/rocketmq/broker.conf:/home/rocketmq/broker.conf:ro
+      - broker-store:/home/rocketmq/store
+      - broker-logs:/home/rocketmq/logs
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/10911'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+volumes:
+  mysql-data:
+  redis-data:
+  broker-store:
+  broker-logs:

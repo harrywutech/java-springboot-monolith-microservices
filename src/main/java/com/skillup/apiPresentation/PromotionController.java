@@ -21,17 +21,27 @@ public class PromotionController {
 
     @Autowired
     PromotionService promotionService;
+    @Autowired
+    org.springframework.beans.factory.ObjectProvider<com.skillup.infrastructure.redis.PromotionCache> cache;
+
+    @PostMapping("/preheat/id/{id}")
+    public ResponseEntity<Boolean> preheat(@PathVariable("id") String id) {
+        if(cache.getIfAvailable()==null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(cache.getObject().preheat(id));
+    }
 
     @PostMapping
     public PromotionOutDto createPromotion(@RequestBody PromotionInDto promotionInDto) {
         PromotionDomain domain = PromotionMapper.INSTANCE.toDomain(promotionInDto);
         domain.setPromotionId(UUID.randomUUID().toString());
-        return PromotionMapper.INSTANCE.toOutDto(promotionService.createPromotion(domain));
+        PromotionDomain saved=promotionService.createPromotion(domain);
+        if(cache.getIfAvailable()!=null) cache.getObject().preheat(saved.getPromotionId());
+        return PromotionMapper.INSTANCE.toOutDto(saved);
     }
 
     @GetMapping("/id/{id}")
     public ResponseEntity<PromotionOutDto> getById(@PathVariable("id") String id) {
-        PromotionDomain domain = promotionService.getById(id);
+        PromotionDomain domain = cache.getIfAvailable()==null ? promotionService.getById(id) : cache.getObject().get(id);
         if (Objects.isNull(domain)) {
             return ResponseEntity.status(SkillUpCommon.BAD_REQUEST).body(null);
         }
@@ -47,18 +57,21 @@ public class PromotionController {
     /** Reserve stock: available_stock -1, lock_stock +1 */
     @PostMapping("/lock/id/{id}")
     public ResponseEntity<Boolean> lockStock(@PathVariable("id") String id) {
+        if(cache.getIfAvailable()!=null) return ResponseEntity.status(409).body(false);
         return ResponseEntity.status(SkillUpCommon.SUCCESS).body(promotionService.lockStock(id));
     }
 
     /** Release stock: available_stock +1, lock_stock -1 */
     @PostMapping("/revert/id/{id}")
     public ResponseEntity<Boolean> revertStock(@PathVariable("id") String id) {
+        if(cache.getIfAvailable()!=null) return ResponseEntity.status(409).body(false);
         return ResponseEntity.status(SkillUpCommon.SUCCESS).body(promotionService.revertStock(id));
     }
 
     /** Consume reserved stock: lock_stock -1 */
     @PostMapping("/deduct/id/{id}")
     public ResponseEntity<Boolean> deductStock(@PathVariable("id") String id) {
+        if(cache.getIfAvailable()!=null) return ResponseEntity.status(409).body(false);
         return ResponseEntity.status(SkillUpCommon.SUCCESS).body(promotionService.deductStock(id));
     }
 }

@@ -1,0 +1,21 @@
+server:
+  port: 8071
+spring:
+  application:
+    name: ecomm-step2
+  datasource:
+    url: ${STEP2_DB_URL:jdbc:mysql://127.0.0.1:13307/skillup?serverTimezone=UTC&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true}
+  flyway:
+    locations: classpath:db/migration,classpath:db/step2
+  redis:
+    host: ${STEP2_REDIS_HOST:127.0.0.1}
+    port: ${STEP2_REDIS_PORT:16379}
+    timeout: 2s
+step2:
+  nameserver: ${STEP2_NAMESERVER:127.0.0.1:19876}
+  cache-ttl-seconds: 300
+  pay-delay-level: ${STEP2_PAY_DELAY_LEVEL:5}
+  pay-timeout-seconds: ${STEP2_PAY_TIMEOUT_SECONDS:60}
+  relay-enabled: true
+order:
+  machineNum: 2

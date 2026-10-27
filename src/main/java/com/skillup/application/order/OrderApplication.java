@@ -22,7 +22,8 @@ import java.util.Objects;
  * which motivates eventual consistency and idempotent processing.
  */
 @Service
-public class OrderApplication {
+@org.springframework.context.annotation.Profile("!step2")
+public class OrderApplication implements OrderWorkflow {
 
     @Autowired
     OrderService orderService;

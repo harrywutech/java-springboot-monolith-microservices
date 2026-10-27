@@ -21,17 +21,18 @@ The implementation follows the course architecture with additional reliability r
 
 JDK 11, Maven 3.8+, Docker with Compose v2, and Python 3 for verification scripts. Set `JAVA_HOME` to JDK 11 and put Maven on `PATH`, or set `MAVEN_HOME`. Spring Boot 2.7.3; Java source/target level 8.
 
-## Current branch: step1
+## Current branch: step2
 
-All business domains share one Spring Boot process and one MySQL schema. Inventory reservation and order creation commit in one local transaction.
+The application remains a monolith. Redis performs atomic stock admission; RocketMQ consumers create orders and process stock events. Payment and timeout handlers serialize order transitions with a database row lock. A database outbox and Redis pending intents support retries.
 
 ```sh
-./scripts/start.sh
+./scripts/start-step2.sh
 # In another terminal, after startup:
-python3 scripts/smoke.py
-# MySQL must be running for integration tests:
-./scripts/mvn.sh -B test
+python3 scripts/smoke-step2.py
+# Starts test dependencies and runs both stage 1 and stage 2 integration tests:
+./scripts/test.sh
 ```
 
-Open `http://127.0.0.1:8070/login.html`. Demo credentials: `test` / `test`.
-Stop the application with Ctrl+C, then run `docker compose stop` to stop MySQL while preserving data.
+Open `http://127.0.0.1:8071/login.html`. Demo credentials: `test` / `test`. New promotions are preheated automatically; `POST /promotion/preheat/id/{id}` refreshes metadata without resetting existing stock.
+The original synchronous profile remains available through `./scripts/start.sh`.
+Stop the application with Ctrl+C, then run `docker compose -f compose.step2.yaml stop`. RocketMQ uses an amd64 image and requires emulation on Apple Silicon.

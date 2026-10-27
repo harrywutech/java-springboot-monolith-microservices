@@ -15,47 +15,39 @@
 <script src="/js/plugins/jquery/jquery.min.js"></script>
 
 <script type="text/javascript">
-  window.onload = function() {
-	var request = new Object();
-	request = GetRequest();
-	var orderNumber = request["orderNumber"];
-	console.log(orderNumber);
-	$.ajax({
-		type: 'GET',
-		url: '/order/id/' + orderNumber,
-		headers: {
-				'Content-Type': 'application/json;charset=UTF-8',
-				'mark': getCookie('mark')
-		},
-		success: function (data) {
-				console.log(data);
-				$('#orderNumber').html(data.orderNumber);
-				var orderStatus = data.orderStatus;
-				if (orderStatus == -1) {
-					$('#orderStatus').html("Sold Out");
-				}
-				else if (orderStatus == 1) {$('#orderStatus').html("Created, waiting for paying");}
-				else if (orderStatus == 2) {
-					$('#orderStatus').html("Payed, waiting for delivering"); $('#pay_button').prop('disabled', true);
-				}
-				else if (orderStatus == 3) {
-					$('#orderStatus').html("Order is closed，cause of paying overtime");
-				}
-
-				var promotionName = data.promotionName;
-				$('#promotionName').html(promotionName);
-
-				var createTime = data.createTime;
-				$('#createTime').html(createTime);
-
-				var orderAmount = data.orderAmount;
-				$('#orderAmount').html(orderAmount);
-		},
-		error: function (data) {
-				alert("Order info is on the way~ Please refresh a moment");
-		}
-	});
-  };
+  let orderPollTimer;
+  let orderPollAttempts = 0;
+  function renderOrder(data) {
+    $('#orderNumber').text(data.orderNumber);
+    const labels = {'-2':'Promotion unavailable', '-1':'Sold Out', '0':'Order accepted, creating…',
+      '1':'Created, waiting for paying', '2':'Payed, waiting for delivering',
+      '3':'Order is closed, payment timed out'};
+    $('#orderStatus').text(labels[data.orderStatus] || 'Unknown order status');
+    $('#promotionName').text(data.promotionName);
+    $('#createTime').text(data.createTime || '');
+    $('#orderAmount').text(data.orderAmount);
+    $('#pay_button').prop('disabled', data.orderStatus !== 1);
+    return data.orderStatus === 0 || data.orderStatus === 1;
+  }
+  function pollOrder() {
+    const id = new URLSearchParams(window.location.search).get('orderNumber');
+    if (!id) { $('#orderStatus').text('Open an order from its confirmation page.'); return; }
+    $('#orderNumber').text(id);
+    $.ajax({type:'GET', url:'/order/id/' + encodeURIComponent(id),
+      success:function(data) { if (renderOrder(data)) scheduleOrderPoll(); },
+      error:function() {
+        $('#orderStatus').text('Waiting for order confirmation…');
+        $('#pay_button').prop('disabled', true);
+        scheduleOrderPoll();
+      }
+    });
+  }
+  function scheduleOrderPoll() {
+    if (++orderPollAttempts < 180) orderPollTimer = setTimeout(pollOrder, 1000);
+    else $('#orderStatus').append(' — refresh to check again.');
+  }
+  window.onload = function() { $('#pay_button').prop('disabled',true); pollOrder(); };
+  window.addEventListener('beforeunload', function() { clearTimeout(orderPollTimer); });
 </script>
 
 <body>
@@ -170,49 +162,15 @@
 				<div class="submit">
 					<button class="sui-btn btn-danger btn-xlarge" id="pay_button" onclick="pay()">Simulate payment</button>
 					<script type="text/javascript">
-					function createPayDto(){
-						var obj = {};
-						obj["existStatus"] = 1;
-						obj["orderNumber"] = document.getElementById('orderNumber').innerHTML;
-						obj["expectStatus"] = 2;
-						console.log(obj);
-						return obj;
-					}
-					function pay(){
-						var jsonObj = createPayDto()
-						var jsonStr = JSON.stringify(jsonObj);
-
-						// call pay function
-						$.ajax({
-							type: 'PATCH',
-							url: '/order/pay',
-							data: jsonStr,
-							headers: {
-									'Content-Type': 'application/json;charset=UTF-8',
-									'mark': getCookie('mark')
-							},
-							success: function (data) {
-									console.log(data);
-									$('#orderNumber').html(data.orderNumber);
-
-									var orderStatus = data.orderStatus;
-									if (orderStatus == -1) {$('#orderStatus').html("Sold Out");}
-									else if (orderStatus == 1) {$('#orderStatus').html("Created, waiting for paying");}
-									else if (orderStatus == 2) {
-										$('#orderStatus').html("Payed, waiting for delivering"); $('#pay_button').prop('disabled', true);
-										alert("Pay successfully!")
-									}
-									else if (orderStatus == 3) {
-										$('#orderStatus').html("Order is closed，cause of paying overtime");
-										alert("Order time out, Pay failed");
-									}
-							},
-							error: function (data) {
-									alert("error: " + data);
-							}
-						});
-					}
-        </script>
+                    function pay() {
+                      $('#pay_button').prop('disabled',true);
+                      $.ajax({type:'PATCH', url:'/order/pay', contentType:'application/json',
+                        data:JSON.stringify({existStatus:1,expectStatus:2,orderNumber:$('#orderNumber').text()}),
+                        success:function(data) { clearTimeout(orderPollTimer); if(renderOrder(data)) scheduleOrderPoll(); },
+                        error:function() { $('#orderStatus').text('Payment could not be confirmed; checking order…'); pollOrder(); }
+                      });
+                    }
+                    </script>
 				</div>
 			</span>
 		</em>

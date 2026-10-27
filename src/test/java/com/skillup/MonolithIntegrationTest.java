@@ -18,7 +18,8 @@ import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.*;
 
 /** Real MySQL tests. Only rows with this test's generated IDs are removed. */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@org.springframework.context.annotation.Import(TestDatabaseConfiguration.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties="spring.datasource.url=jdbc:mysql://127.0.0.1:13306/skillup_test?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true")
 class MonolithIntegrationTest {
     @Autowired PromotionService promotions;
     @Autowired OrderApplication orders;
