@@ -1,0 +1,29 @@
+server:
+  address: 127.0.0.1
+  port: ${PORT:8804}
+spring:
+  application:
+    name: step3-frontend
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  cloud:
+    consul:
+      host: 127.0.0.1
+      port: 18500
+      discovery:
+        instance-id: ${spring.application.name}-${server.port}
+        prefer-ip-address: true
+        ip-address: 127.0.0.1
+        query-passing: true
+        heartbeat:
+          enabled: true
+          ttl: 10s
+    loadbalancer:
+      cache:
+        ttl: 2s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

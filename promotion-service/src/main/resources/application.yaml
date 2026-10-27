@@ -1,0 +1,46 @@
+server:
+  address: 127.0.0.1
+  port: ${PORT:8831}
+spring:
+  application:
+    name: step3-promotion
+  datasource:
+    url: jdbc:mysql://127.0.0.1:13308/step3_promotion?serverTimezone=UTC&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    username: step3_promotion
+    password: step3_local
+    hikari:
+      maximum-pool-size: 5
+  redis:
+    host: 127.0.0.1
+    port: 16380
+    timeout: 2s
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  cloud:
+    consul:
+      host: 127.0.0.1
+      port: 18500
+      discovery:
+        instance-id: ${spring.application.name}-${server.port}
+        prefer-ip-address: true
+        ip-address: 127.0.0.1
+        query-passing: true
+        heartbeat:
+          enabled: true
+          ttl: 10s
+    loadbalancer:
+      cache:
+        ttl: 2s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+promotion:
+  stock-strategy: optimistic
+step3:
+  mq:
+    enabled: true
+    topics: step3-lock-stock,step3-revert-stock,step3-deduct-stock
+    nameserver: 127.0.0.1:19877

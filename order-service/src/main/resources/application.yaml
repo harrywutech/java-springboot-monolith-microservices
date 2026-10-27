@@ -1,0 +1,52 @@
+server:
+  address: 127.0.0.1
+  port: ${PORT:8911}
+spring:
+  application:
+    name: step3-order-${step3.shard}
+  datasource:
+    url: jdbc:mysql://127.0.0.1:13308/step3_order${step3.shard}?serverTimezone=UTC&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    username: step3_order${step3.shard}
+    password: step3_local
+    hikari:
+      maximum-pool-size: 5
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  cloud:
+    consul:
+      host: 127.0.0.1
+      port: 18500
+      discovery:
+        instance-id: ${spring.application.name}-${server.port}
+        prefer-ip-address: true
+        ip-address: 127.0.0.1
+        query-passing: true
+        heartbeat:
+          enabled: true
+          ttl: 10s
+    loadbalancer:
+      cache:
+        ttl: 2s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+step3:
+  shard: ${SHARD:1}
+  pay-timeout-seconds: 60
+  pay-delay-level: 5
+  mq:
+    enabled: true
+    topics: step3-create-order-${step3.shard},step3-pay-check-${step3.shard}
+    nameserver: 127.0.0.1:19877
+order:
+  dataCenter: ${step3.shard}
+  machineNum: ${MACHINE:1}
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 2000
+        readTimeout: 5000

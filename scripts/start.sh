@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
+python3 scripts/services.py assert-stopped
 docker compose up -d --wait
-./scripts/mvn.sh -B -DskipTests package
-exec "${JAVA_HOME:+$JAVA_HOME/bin/}java" -jar target/ecomm-monolith-1.0-SNAPSHOT.jar
+./scripts/mvn.sh -B -f "$PWD/pom.xml" -DskipTests package
+python3 scripts/services.py start

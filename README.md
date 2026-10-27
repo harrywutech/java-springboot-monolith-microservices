@@ -21,18 +21,29 @@ The implementation follows the course architecture with additional reliability r
 
 JDK 11, Maven 3.8+, Docker with Compose v2, and Python 3 for verification scripts. Set `JAVA_HOME` to JDK 11 and put Maven on `PATH`, or set `MAVEN_HOME`. Spring Boot 2.7.3; Java source/target level 8.
 
-## Current branch: step2
+## Current branch: step3
 
-The application remains a monolith. Redis performs atomic stock admission; RocketMQ consumers create orders and process stock events. Payment and timeout handlers serialize order transitions with a database row lock. A database outbox and Redis pending intents support retries.
+| Module | Responsibility |
+| --- | --- |
+| `common` | Shared contracts, sharding rule, and messaging adapter |
+| `user-service` | Accounts and login |
+| `commodity-service` | Product catalog |
+| `promotion-service` | Promotions, Redis reservations, and stock events |
+| `order-service` | Orders, simulated payment, expiry, and outgoing events |
+| `frontend-service` | Store pages and static assets |
+| `gateway-service` | Same-origin entry point and service routing |
 
 ```sh
-./scripts/start-step2.sh
-# In another terminal, after startup:
-python3 scripts/smoke-step2.py
-# Starts test dependencies and runs both stage 1 and stage 2 integration tests:
+./scripts/start.sh
+# In another terminal, after all services are healthy:
+python3 scripts/smoke.py
+python3 scripts/failover.py
 ./scripts/test.sh
+# Stop managed application processes and infrastructure, preserving data:
+./scripts/stop.sh
 ```
 
-Open `http://127.0.0.1:8071/login.html`. Demo credentials: `test` / `test`. New promotions are preheated automatically; `POST /promotion/preheat/id/{id}` refreshes metadata without resetting existing stock.
-The original synchronous profile remains available through `./scripts/start.sh`.
-Stop the application with Ctrl+C, then run `docker compose -f compose.step2.yaml stop`. RocketMQ uses an amd64 image and requires emulation on Apple Silicon.
+Open `http://127.0.0.1:8090/login.html`; Consul UI: `http://127.0.0.1:18500`.
+Demo users: `test` / `test` routes to shard 1, and `test2` / `test` routes to shard 2.
+
+Eight JVMs run six service types: user, commodity, promotion, frontend, gateway, and three order instances. Two order instances share shard 1; one serves shard 2. Business services have separate schema accounts on one local MySQL server. The `mark` header selects an order shard and is only a teaching routing mechanism. Real authentication, payment-provider integration, and production high availability remain future work. RocketMQ uses amd64 emulation on Apple Silicon.

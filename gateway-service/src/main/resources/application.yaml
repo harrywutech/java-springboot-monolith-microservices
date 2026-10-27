@@ -1,0 +1,61 @@
+server:
+  address: 127.0.0.1
+  port: ${PORT:8090}
+spring:
+  application:
+    name: step3-gateway
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  cloud:
+    gateway:
+      routes:
+        - id: account
+          uri: lb://step3-user
+          predicates:
+            - Path=/account/**
+        - id: system
+          uri: lb://step3-user
+          predicates:
+            - Path=/system/**
+        - id: commodity
+          uri: lb://step3-commodity
+          predicates:
+            - Path=/commodity/**
+        - id: promotion
+          uri: lb://step3-promotion
+          predicates:
+            - Path=/promotion/**
+        - id: order1
+          uri: lb://step3-order-1
+          predicates:
+            - Path=/order/**
+            - Header=mark, 1
+        - id: order2
+          uri: lb://step3-order-2
+          predicates:
+            - Path=/order/**
+            - Header=mark, 2
+        - id: frontend
+          uri: lb://step3-frontend
+          predicates:
+            - Path=/**
+    consul:
+      host: 127.0.0.1
+      port: 18500
+      discovery:
+        instance-id: ${spring.application.name}-${server.port}
+        prefer-ip-address: true
+        ip-address: 127.0.0.1
+        query-passing: true
+        heartbeat:
+          enabled: true
+          ttl: 10s
+    loadbalancer:
+      cache:
+        ttl: 2s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

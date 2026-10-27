@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Step3User" type="Application" factoryName="Application">
+    <option name="PROGRAM_PARAMETERS" value="--server.port=8811 " />
+    <option name="MAIN_CLASS_NAME" value="com.skillup.UserApp" />
+    <module name="user-service" />
+    <option name="VM_PARAMETERS" value="-Xms64m -Xmx192m -XX:ActiveProcessorCount=2 -Duser.timezone=UTC" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <method v="2"><option name="Make" enabled="true" /></method>
+  </configuration>
+</component>
